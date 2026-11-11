@@ -26,8 +26,7 @@ const character2IncorrectFrameCount = 6; // 設定角色 2 答錯動畫的圖片
 const animationSpeed = 7; // 設定每張動畫圖片顯示的畫面更新次數
 const character2AnimationSpeed = 5; // 加快角色 2 的答題動畫，讓動作更明顯
 const moveSpeed = 5; // 設定角色 1 每次更新的位置移動量
-const characterScale = 1; // 設定角色 1 以原始圖片尺寸顯示
-const character2Scale = 2; // 設定角色 2 以原始圖片尺寸的 2 倍顯示
+const characterScale = 2; // 設定角色 1 以原始圖片尺寸的 2 倍顯示
 function preload() { // 在畫布啟動前載入背景與所有角色精靈圖
   backgroundImage = loadImage("bg/bg1.png"); // 載入背景圖片
   stopSheet = loadImage("1/stop/stop.png"); // 載入角色 1 待機動畫精靈圖
@@ -38,6 +37,7 @@ function preload() { // 在畫布啟動前載入背景與所有角色精靈圖
 } // 結束精靈圖載入函式
 function setup() { // 設定畫布與角色初始位置
   createCanvas(windowWidth, windowHeight); // 建立符合視窗大小的全螢幕畫布
+  noSmooth(); // 關閉平滑取樣以保持放大像素圖清晰
   characterX = width * 2 / 3; // 將角色 1 放在畫布寬度的三分之二位置
   characterY = height * 0.98; // 將角色 1 的腳底放在接近畫面底部的位置
   imageMode(CORNER); // 使用圖片左上角作為繪圖座標基準
@@ -52,14 +52,10 @@ function draw() { // 每次畫面更新時繪製背景、角色與互動畫面
   } else if (keyIsDown(RIGHT_ARROW)) { // 檢查右方向鍵是否正被按住
     direction = 1; // 設定角色 1 向右移動
   } // 結束方向鍵判斷
-  if (interactionState !== "question" && direction !== 0) { // 答題框未開啟且按下方向鍵時允許角色移動
-    facingDirection = direction; // 依移動方向更新角色 1 朝向
-    characterX += direction * moveSpeed; // 依移動方向更新角色 1 的水平位置
-  } // 結束角色 1 移動處理
   const isRunning = interactionState !== "question" && direction !== 0; // 判斷角色 1 是否正在跑步
   const character1Sheet = isRunning ? runSheet : stopSheet; // 選擇角色 1 目前狀態對應的精靈圖
   const character1FrameCount = isRunning ? runFrameCount : stopFrameCount; // 取得角色 1 目前動畫的圖片張數
-  const character1FrameWidth = character1Sheet.width / character1FrameCount; // 計算角色 1 單張圖片寬度
+  const character1FrameWidth = Math.floor(character1Sheet.width / character1FrameCount); // 將角色 1 單格圖片寬度無條件捨去為整數
   const character1FrameHeight = character1Sheet.height; // 取得角色 1 單張圖片高度
   let character1FrameIndex = 0; // 預設角色 1 目前要顯示的圖片序號
   if (isRunning && !wasRunning) { // 偵測角色 1 剛開始跑步
@@ -83,14 +79,29 @@ function draw() { // 每次畫面更新時繪製背景、角色與互動畫面
   wasRunning = isRunning; // 記錄角色 1 目前狀態以偵測下一次跑步動畫開始
   const character1Scale = characterScale; // 使用設定的比例放大角色 1
   const character1Width = character1FrameWidth * character1Scale; // 計算角色 1 顯示寬度
-  const character2X = width / 3; // 將角色 2 固定在畫布寬度的三分之一位置
-  const character2Y = height * 0.98; // 將角色 2 的腳底放在接近畫面底部的位置
-  const proximityDistance = Math.min(width * 0.12, character1Width / 2 + character2StopSheet.width / character2StopFrameCount * character2Scale / 2); // 依畫面與角色尺寸計算觸發答題的接近距離
+  const character1Height = character1FrameHeight * character1Scale; // 計算角色 1 目前動畫的顯示高度
+  const character2Scale = character1Height / character2StopSheet.height; // 依角色 1 顯示高度計算角色 2 統一縮放倍數
+  const character2X = Math.round(width / 3); // 將角色 2 固定在畫布寬度的三分之一位置並取整數座標
+  const character2Y = Math.round(height * 0.98); // 將角色 2 的腳底放在接近畫面底部的位置並取整數座標
+  const character2FrameWidth = Math.floor(character2StopSheet.width / character2StopFrameCount); // 將角色 2 單格圖片寬度無條件捨去為整數
+  const character2Width = Math.round(character2FrameWidth * character2Scale); // 計算角色 2 放大後取整數的顯示寬度
+  const triggerDistance = (character1Width + character2Width) / 2 + 30; // 依兩個角色放大後的寬度計算出題觸發距離
+  const farDistance = triggerDistance + 100; // 將角色 2 恢復待機動畫的距離設為觸發距離再加 100
+  if (interactionState !== "question" && direction !== 0) { // 答題框未開啟且按下方向鍵時允許角色移動
+    facingDirection = direction; // 依移動方向更新角色 1 朝向
+    const characterSide = characterX < character2X ? -1 : 1; // 記錄角色 1 位於角色 2 左側或右側
+    const nextCharacterX = characterX + direction * moveSpeed; // 計算角色 1 移動後預計到達的水平位置
+    if (characterSide < 0) { // 角色 1 位於角色 2 左側時限制其最接近位置
+      characterX = Math.min(nextCharacterX, character2X - triggerDistance); // 阻止角色 1 穿過角色 2 並保留觸發距離
+    } else { // 角色 1 位於角色 2 右側時限制其最接近位置
+      characterX = Math.max(nextCharacterX, character2X + triggerDistance); // 阻止角色 1 穿過角色 2 並保留觸發距離
+    } // 結束角色 1 接近角色 2 時的位置限制
+  } // 結束角色 1 移動處理
   const distanceBetweenCharacters = Math.abs(characterX - character2X); // 計算兩個角色的水平距離
-  if (interactionState === "idle" && distanceBetweenCharacters <= proximityDistance) { // 角色 1 靠近角色 2 且尚未開始本次互動時出題
+  if (interactionState === "idle" && distanceBetweenCharacters <= triggerDistance) { // 角色 1 抵達出題觸發距離時開始本次互動
     currentQuestion = createMathQuestion(); // 隨機產生一道四則運算選擇題
     interactionState = "question"; // 顯示答題狀態並暫停角色 1 移動
-  } else if (interactionState === "answered" && distanceBetweenCharacters > Math.max(proximityDistance, width * 0.15)) { // 角色 1 遠離角色 2 後立即結束互動並恢復待機
+  } else if (interactionState === "answered" && distanceBetweenCharacters > farDistance) { // 角色 1 超過遠離距離後結束互動並恢復角色 2 待機動畫
     interactionState = "idle"; // 將互動狀態恢復為待機
     answerWasCorrect = false; // 清除上一次答題結果
   } // 結束角色靠近與離開的互動判斷
@@ -117,20 +128,25 @@ function draw() { // 每次畫面更新時繪製背景、角色與互動畫面
     character2AnimationFrameIndex = (character2AnimationFrameIndex + 1) % character2FrameCount; // 循環播放角色 2 動畫並呈現連續動作
   } // 結束角色 2 動畫換格處理
   drawSpriteFrame(character1Sheet, character1FrameCount, character1FrameIndex, characterX, characterY, character1Scale, facingDirection); // 繪製角色 1 目前的待機或跑步動畫
-  drawSpriteFrame(character2Sheet, character2FrameCount, character2FrameIndex, character2X, character2Y, character2Scale, 1); // 以原始尺寸 2 倍繪製角色 2 目前的動畫
+  drawSpriteFrame(character2Sheet, character2FrameCount, character2FrameIndex, character2X, character2Y, character2Scale, 1, true); // 以統一縮放比例並取整數座標繪製角色 2 目前的動畫
   if (interactionState === "question") { // 答題狀態時顯示數學題目視窗
     drawQuestionPanel(); // 繪製黃色半透明選擇題方框
   } // 結束題目視窗顯示判斷
 } // 結束畫面繪製函式
-function drawSpriteFrame(spriteSheet, frameCount, frameIndex, centerX, groundY, scaleFactor, direction) { // 擷取精靈圖單格並以腳底為基準繪製角色
-  const frameWidth = spriteSheet.width / frameCount; // 計算精靈圖每一格的寬度
+function drawSpriteFrame(spriteSheet, frameCount, frameIndex, centerX, groundY, scaleFactor, direction, roundToPixels = false) { // 擷取精靈圖單格並以腳底為基準繪製角色
+  const frameWidth = Math.floor(spriteSheet.width / frameCount); // 將精靈圖每一格的寬度無條件捨去為整數
   const frameHeight = spriteSheet.height; // 取得精靈圖每一格的高度
-  const drawWidth = frameWidth * scaleFactor; // 計算角色繪製寬度
-  const drawHeight = frameHeight * scaleFactor; // 計算角色繪製高度
+  const drawWidth = roundToPixels ? Math.round(frameWidth * scaleFactor) : frameWidth * scaleFactor; // 計算繪製寬度並依需求取整數
+  const drawHeight = roundToPixels ? Math.round(frameHeight * scaleFactor) : frameHeight * scaleFactor; // 計算繪製高度並依需求取整數
+  const drawX = roundToPixels ? Math.round(-drawWidth / 2) : -drawWidth / 2; // 計算繪製左側座標並依需求取整數
+  const drawY = roundToPixels ? Math.round(-drawHeight) : -drawHeight; // 計算繪製上方座標並依需求取整數
+  const drawCenterX = roundToPixels ? Math.round(centerX) : centerX; // 計算繪製中心座標並依需求取整數
+  const drawGroundY = roundToPixels ? Math.round(groundY) : groundY; // 計算地面錨點座標並依需求取整數
+  const sourceX = Math.floor(frameIndex * frameWidth); // 將切圖來源的水平座標取整數以避免切到相鄰格
   push(); // 暫存畫布狀態以免翻轉影響其他內容
-  translate(centerX, groundY); // 將繪圖原點移至角色中心底部
+  translate(drawCenterX, drawGroundY); // 將繪圖原點移至角色中心底部並保持角色腳底對齊
   scale(direction, 1); // 依角色朝向決定是否水平翻轉圖片
-  image(spriteSheet, -drawWidth / 2, -drawHeight, drawWidth, drawHeight, frameIndex * frameWidth, 0, frameWidth, frameHeight); // 擷取並繪製指定的動畫圖片
+  image(spriteSheet, drawX, drawY, drawWidth, drawHeight, sourceX, 0, frameWidth, frameHeight); // 擷取並繪製指定動畫圖片且保持整數尺寸與切圖座標
   pop(); // 還原畫布狀態
 } // 結束精靈圖單格繪製函式
 function createMathQuestion() { // 隨機建立一題四則運算選擇題
