@@ -217,16 +217,25 @@ function drawQuestionPanel() { // 繪製黃色半透明的數學選擇題視窗
   textAlign(CENTER, CENTER); // 將題目文字水平與垂直置中
   textSize(Math.max(12, Math.min(20, panel.height * 0.11))); // 依題目視窗大小設定易讀的文字尺寸
   text("數學小挑戰", panel.x + panel.width / 2, panel.y + panel.height * 0.15); // 顯示數學練習標題
-  textSize(Math.max(14, Math.min(24, panel.height * 0.14))); // 設定運算題目的文字尺寸
-  text(currentQuestion.text, panel.x + panel.width / 2, panel.y + panel.height * 0.37); // 顯示目前的四則運算問題
-  textSize(Math.max(12, Math.min(18, panel.height * 0.1))); // 設定答案選項的文字尺寸
+  textStyle(BOLD); // 將運算題目與答案選項設為粗體
+  const questionFontSize = Math.min(32, panel.height * 0.18); // 依題目框高度設定放大後的題目字體上限
+  textSize(questionFontSize); // 套用題目字體大小以測量文字寬度
+  const questionText = currentQuestion.text; // 取得目前題目文字供尺寸計算與顯示使用
+  const fittedQuestionFontSize = questionFontSize * Math.min(1, panel.width * 0.88 / textWidth(questionText)); // 依題目框內寬縮小字體以避免文字超出邊框
+  textSize(fittedQuestionFontSize); // 套用符合邊框寬度的題目字體大小
+  text(questionText, panel.x + panel.width / 2, panel.y + panel.height * 0.37); // 以粗體顯示目前的四則運算問題
   for (let index = 0; index < currentQuestion.choices.length; index += 1) { // 逐一繪製四個答案選項
     const button = getAnswerButton(index); // 取得目前答案按鈕的位置與尺寸
     const optionLabel = String.fromCharCode(65 + index); // 依選項順序產生 A、B、C、D 字母標籤
+    const optionText = `${optionLabel}. ${currentQuestion.choices[index]}`; // 組合目前選項的字母標籤與答案內容
+    const optionFontSize = Math.min(26, panel.height * 0.14); // 依題目框高度設定放大後的選項字體上限
+    textSize(optionFontSize); // 套用選項字體大小以測量文字寬度
+    const fittedOptionFontSize = optionFontSize * Math.min(1, button.width * 0.88 / textWidth(optionText)); // 依選項按鈕寬度縮小字體以避免文字超框
+    textSize(fittedOptionFontSize); // 套用符合選項按鈕寬度的字體大小
     fill(255, 255, 255, 210); // 設定答案按鈕的半透明白色底色
     rect(button.x, button.y, button.width, button.height, 6); // 繪製可點選的答案按鈕
     fill(30); // 設定答案數字的文字顏色
-    text(`${optionLabel}. ${currentQuestion.choices[index]}`, button.x + button.width / 2, button.y + button.height / 2); // 以 A、B、C、D 顯示答案選項
+    text(optionText, button.x + button.width / 2, button.y + button.height / 2); // 以粗體顯示 A、B、C、D 答案選項
   } // 結束答案選項繪製
   pop(); // 還原畫布狀態
 } // 結束題目視窗繪製函式
