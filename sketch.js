@@ -28,7 +28,7 @@ const character2AnimationSpeed = 5; // 加快角色 2 的答題動畫，讓動�
 const moveSpeed = 5; // 設定角色 1 每次更新的位置移動量
 const characterScale = 2; // 設定角色 1 以原始圖片尺寸的 2 倍顯示
 function preload() { // 在畫布啟動前載入背景與所有角色精靈圖
-  backgroundImage = loadImage("bg/bg1.png"); // 載入背景圖片
+  backgroundImage = loadImage("bg/bg2.png"); // 載入指定的第二張背景圖片
   stopSheet = loadImage("1/stop/stop.png"); // 載入角色 1 待機動畫精靈圖
   runSheet = loadImage("1/run/run.png"); // 載入角色 1 跑步動畫精靈圖
   character2StopSheet = loadImage("2/stop/stop.png"); // 載入角色 2 待機動畫精靈圖
@@ -222,10 +222,11 @@ function drawQuestionPanel() { // 繪製黃色半透明的數學選擇題視窗
   textSize(Math.max(12, Math.min(18, panel.height * 0.1))); // 設定答案選項的文字尺寸
   for (let index = 0; index < currentQuestion.choices.length; index += 1) { // 逐一繪製四個答案選項
     const button = getAnswerButton(index); // 取得目前答案按鈕的位置與尺寸
+    const optionLabel = String.fromCharCode(65 + index); // 依選項順序產生 A、B、C、D 字母標籤
     fill(255, 255, 255, 210); // 設定答案按鈕的半透明白色底色
     rect(button.x, button.y, button.width, button.height, 6); // 繪製可點選的答案按鈕
     fill(30); // 設定答案數字的文字顏色
-    text(`${index + 1}. ${currentQuestion.choices[index]}`, button.x + button.width / 2, button.y + button.height / 2); // 顯示答案選項文字
+    text(`${optionLabel}. ${currentQuestion.choices[index]}`, button.x + button.width / 2, button.y + button.height / 2); // 以 A、B、C、D 顯示答案選項
   } // 結束答案選項繪製
   pop(); // 還原畫布狀態
 } // 結束題目視窗繪製函式
